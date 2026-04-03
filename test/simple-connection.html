@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MetaMask Connection Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background: #0a5c2e; color: white; }
+        .disconnected { background: #5c0a0a; color: white; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #252526; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔌 MetaMask Connection Test</h1>
+    
+    <div id="status" class="status disconnected">
+        ⚠️ NOT CONNECTED
+    </div>
+    
+    <div>
+        <button onclick="connectWallet()">Connect Wallet</button>
+        <button onclick="checkNetwork()">Check Network</button>
+        <button onclick="getAccount()">Get Account</button>
+    </div>
+    
+    <h3>📋 Contract Info:</h3>
+    <pre id="contractInfo"></pre>
+    
+    <h3>📝 Logs:</h3>
+    <pre id="logs"></pre>
+    
+    <script>
+        // UPDATE THIS WITH YOUR CONTRACT ADDRESS
+        const CONTRACT_ADDRESS = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
+        
+        let provider = null;
+        let signer = null;
+        
+        function log(message) {
+            const logsDiv = document.getElementById('logs');
+            logsDiv.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        async function connectWallet() {
+            log("🔄 Attempting to connect...");
+            
+            if (typeof window.ethereum === 'undefined') {
+                log("❌ MetaMask not installed!");
+                updateStatus(false);
+                return;
+            }
+            
+            try {
+                // Request account access
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                log(`✅ Accounts received: ${accounts.length}`);
+                log(`   Account: ${accounts[0]}`);
+                
+                // Create provider
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                
+                // Get network
+                const network = await provider.getNetwork();
+                log(`🌐 Network: ${network.name} (Chain ID: ${network.chainId})`);
+                
+                // Check if on correct network
+                if (network.chainId !== 31337n) {
+                    log(`⚠️ WARNING: Wrong network! Need Chain ID 31337 (Hardhat Localhost)`);
+                    log(`   Please switch to "Hardhat Localhost" network in MetaMask`);
+                    updateStatus(false);
+                } else {
+                    log(`✅ Correct network detected!`);
+                    updateStatus(true);
+                    
+                    // Try to connect to contract
+                    await testContractConnection();
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+                updateStatus(false);
+            }
+        }
+        
+        async function testContractConnection() {
+            log("📝 Testing contract connection...");
+            
+            if (!provider) {
+                log("❌ No provider");
+                return;
+            }
+            
+            try {
+                // Contract ABI (minimal)
+                const abi = [
+                    "function rtsaAuthority() view returns (address)"
+                ];
+                
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
+                const rtsa = await contract.rtsaAuthority();
+                
+                document.getElementById('contractInfo').textContent = 
+                    `Contract Address: ${CONTRACT_ADDRESS}\n` +
+                    `RTSA Authority: ${rtsa}\n` +
+                    `Your Account: ${await signer.getAddress()}\n\n` +
+                    `Is RTSA? ${(await signer.getAddress()).toLowerCase() === rtsa.toLowerCase() ? 'YES (Full access)' : 'NO (Read only)'}`;
+                
+                log(`✅ Contract connected! RTSA: ${rtsa.slice(0, 10)}...`);
+                
+                // Check if connected account is RTSA
+                const userAddress = await signer.getAddress();
+                if (userAddress.toLowerCase() === rtsa.toLowerCase()) {
+                    log(`👑 You are connected as RTSA Authority!`);
+                } else {
+                    log(`👤 You are connected as regular user (verification only)`);
+                }
+                
+            } catch (error) {
+                log(`❌ Contract connection failed: ${error.message}`);
+                log(`   Make sure contract is deployed at ${CONTRACT_ADDRESS}`);
+                document.getElementById('contractInfo').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function checkNetwork() {
+            if (!provider) {
+                log("❌ Provider not initialized. Connect wallet first.");
+                return;
+            }
+            
+            const network = await provider.getNetwork();
+            log(`Current Network: Chain ID ${network.chainId}`);
+            log(`Expected Chain ID: 31337 (Hardhat Localhost)`);
+            
+            if (network.chainId !== 31337n) {
+                log(`⚠️ Please switch to "Hardhat Localhost" network in MetaMask`);
+            }
+        }
+        
+        async function getAccount() {
+            if (!provider) {
+                log("❌ Provider not initialized. Connect wallet first.");
+                return;
+            }
+            
+            const address = await signer.getAddress();
+            const balance = await provider.getBalance(address);
+            log(`Account: ${address}`);
+            log(`Balance: ${ethers.formatEther(balance)} ETH`);
+        }
+        
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            if (connected) {
+                statusDiv.className = "status connected";
+                statusDiv.innerHTML = "✅ CONNECTED to MetaMask and Hardhat Localhost";
+            } else {
+                statusDiv.className = "status disconnected";
+                statusDiv.innerHTML = "⚠️ NOT CONNECTED - Click 'Connect Wallet' and ensure you're on Hardhat Localhost network";
+            }
+        }
+        
+        // Auto-check MetaMask on load
+        window.addEventListener('load', () => {
+            log("Page loaded. Click 'Connect Wallet' to begin.");
+            if (typeof window.ethereum !== 'undefined') {
+                log("✅ MetaMask detected");
+            } else {
+                log("❌ MetaMask not detected. Please install MetaMask extension.");
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
+</body>
+</html>

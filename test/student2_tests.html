@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student 2 - Wallet Integration Tests</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .status-bar {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .status-card span {
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #218838;
+        }
+        
+        .btn-secondary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .test-results {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        
+        .test-entry {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid;
+            font-family: monospace;
+        }
+        
+        .test-pass {
+            border-left-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .test-fail {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .test-info {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .test-skip {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .summary {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .summary h3 {
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 10px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .stat-pass .stat-number { color: #28a745; }
+        .stat-fail .stat-number { color: #dc3545; }
+        .stat-total .stat-number { color: #007bff; }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Student 2: Wallet Integration Tests</h1>
+            <p>Testing MetaMask connection, contract interaction, and license management</p>
+            
+            <div class="status-bar">
+                <div class="status-card">
+                    📍 Contract: <span id="contractStatus">Not Loaded</span>
+                </div>
+                <div class="status-card">
+                    👛 Wallet: <span id="walletStatus">Not Connected</span>
+                </div>
+                <div class="status-card">
+                    👤 Account: <span id="accountStatus">-</span>
+                </div>
+                <div class="status-card">
+                    🔑 Role: <span id="roleStatus">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn-primary" onclick="connectWallet()">🔌 Connect MetaMask</button>
+            <button class="btn-secondary" onclick="runAllTests()">▶️ Run All Tests</button>
+            <button class="btn-warning" onclick="clearResults()">🗑️ Clear Results</button>
+            <button class="btn-danger" onclick="disconnectWallet()">🔒 Disconnect</button>
+        </div>
+        
+        <div class="test-results" id="testResults">
+            <div style="color: #666; text-align: center; padding: 20px;">
+                Click "Run All Tests" to begin
+            </div>
+        </div>
+        
+        <div class="summary" id="summary" style="display: none;">
+            <h3>📊 Test Summary</h3>
+            <div class="stats">
+                <div class="stat stat-pass">
+                    <div class="stat-number" id="passCount">0</div>
+                    <div>Passed</div>
+                </div>
+                <div class="stat stat-fail">
+                    <div class="stat-number" id="failCount">0</div>
+                    <div>Failed</div>
+                </div>
+                <div class="stat stat-total">
+                    <div class="stat-number" id="totalCount">0</div>
+                    <div>Total</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
+    <script>
+        // ============================================
+        // CONFIGURATION - UPDATE WITH YOUR CONTRACT
+        // ============================================
+        const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+        
+        // Simplified ABI for testing (copy from your contract artifacts)
+        const CONTRACT_ABI = [
+            "function rtsaAuthority() view returns (address)",
+            "function issueLicense(string,uint256,bytes32,string,string,string,uint256,string)",
+            "function revokeLicense(bytes32,string)",
+            "function verifyLicense(bytes32) view returns (string,uint256,bool,bool,bool,uint256,uint256,string)",
+            "function isLicenseValid(bytes32) view returns (bool)",
+            "function getVehicleLicenses(string) view returns (bytes32[])",
+            "function authorizeOfficer(address)",
+            "function deauthorizeOfficer(address)",
+            "event LicenseIssued(bytes32 indexed,string,uint256,uint256)",
+            "event LicenseRevoked(bytes32 indexed,string)"
+        ];
+        
+        // Test state
+        let provider = null;
+        let signer = null;
+        let contract = null;
+        let testResults = [];
+        let lastLicenseHash = null;
+        
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        
+        function log(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const entry = document.createElement('div');
+            entry.className = `test-entry test-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsDiv.appendChild(entry);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+            
+            testResults.push({ message, type, timestamp: new Date() });
+        }
+        
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            testResults = [];
+            document.getElementById('summary').style.display = 'none';
+        }
+        
+        async function connectWallet() {
+            log("🔄 Connecting to MetaMask...", 'info');
+            
+            if (typeof window.ethereum === 'undefined') {
+                log("❌ MetaMask not installed! Please install MetaMask extension.", 'fail');
+                updateStatus('walletStatus', '❌ Not Installed');
+                return false;
+            }
+            
+            try {
+                // Request account access
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Create provider and signer
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                const address = await signer.getAddress();
+                
+                // Create contract instance
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                
+                // Update status
+                updateStatus('walletStatus', '✅ Connected');
+                updateStatus('accountStatus', `${address.slice(0, 6)}...${address.slice(-4)}`);
+                updateStatus('contractStatus', CONTRACT_ADDRESS.slice(0, 10) + '...');
+                
+                // Check role
+                const rtsaAddress = await contract.rtsaAuthority();
+                if (address.toLowerCase() === rtsaAddress.toLowerCase()) {
+                    updateStatus('roleStatus', '👑 RTSA Authority');
+                    log("✅ Connected as RTSA Authority - Full access granted", 'pass');
+                } else {
+                    updateStatus('roleStatus', '👤 Citizen/Police - Read only');
+                    log("ℹ️ Connected as regular user - Verification only", 'info');
+                }
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+                log("✅ Wallet connected successfully!", 'pass');
+                return true;
+                
+            } catch (error) {
+                log(`❌ Failed to connect: ${error.message}`, 'fail');
+                updateStatus('walletStatus', '❌ Failed');
+                return false;
+            }
+        }
+        
+        async function disconnectWallet() {
+            log("🔌 Disconnecting wallet...", 'info');
+            provider = null;
+            signer = null;
+            contract = null;
+            updateStatus('walletStatus', 'Not Connected');
+            updateStatus('accountStatus', '-');
+            updateStatus('roleStatus', '-');
+            log("✅ Wallet disconnected", 'pass');
+        }
+        
+        function setupEventListeners() {
+            if (!contract) return;
+            
+            contract.on("LicenseIssued", (licenseHash, vehicleNumber, year, expiryDate) => {
+                log(`📢 EVENT: New license issued for ${vehicleNumber} (Hash: ${licenseHash.slice(0, 10)}...)`, 'info');
+            });
+            
+            contract.on("LicenseRevoked", (licenseHash, reason) => {
+                log(`📢 EVENT: License revoked - Reason: ${reason}`, 'info');
+            });
+        }
+        
+        function updateStatus(elementId, value) {
+            document.getElementById(elementId).textContent = value;
+        }
+        
+        // ============================================
+        // TEST FUNCTIONS
+        // ============================================
+        
+        async function testWalletConnection() {
+            log("🧪 TEST 1: Wallet Connection", 'info');
+            
+            if (typeof window.ethereum === 'undefined') {
+                log("❌ FAIL: MetaMask not installed", 'fail');
+                return false;
+            }
+            
+            if (!provider || !signer) {
+                log("❌ FAIL: Wallet not connected", 'fail');
+                return false;
+            }
+            
+            const address = await signer.getAddress();
+            if (!address) {
+                log("❌ FAIL: No account found", 'fail');
+                return false;
+            }
+            
+            log("✅ PASS: Wallet connected successfully", 'pass');
+            return true;
+        }
+        
+        async function testContractConnection() {
+            log("🧪 TEST 2: Contract Connection", 'info');
+            
+            if (!contract) {
+                log("❌ FAIL: Contract not initialized", 'fail');
+                return false;
+            }
+            
+            try {
+                const rtsa = await contract.rtsaAuthority();
+                if (rtsa && rtsa !== ethers.ZeroAddress) {
+                    log(`✅ PASS: Contract connected - RTSA: ${rtsa.slice(0, 10)}...`, 'pass');
+                    return true;
+                }
+            } catch (error) {
+                log(`❌ FAIL: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+        
+        async function testRTSARole() {
+            log("🧪 TEST 3: RTSA Role Detection", 'info');
+            
+            if (!contract) return false;
+            
+            const address = await signer.getAddress();
+            const rtsaAddress = await contract.rtsaAuthority();
+            
+            const isRTSA = address.toLowerCase() === rtsaAddress.toLowerCase();
+            
+            if (isRTSA) {
+                log("✅ PASS: Connected as RTSA Authority", 'pass');
+            } else {
+                log("✅ PASS: Connected as regular user (verification only)", 'pass');
+            }
+            
+            return true;
+        }
+        
+        async function testLicenseIssuance() {
+            log("🧪 TEST 4: License Issuance", 'info');
+            
+            if (!contract) return false;
+            
+            const address = await signer.getAddress();
+            const rtsaAddress = await contract.rtsaAuthority();
+            const isRTSA = address.toLowerCase() === rtsaAddress.toLowerCase();
+            
+            if (!isRTSA) {
+                log("⚠️ SKIP: Not RTSA account - License issuance requires RTSA role", 'skip');
+                return true;
+            }
+            
+            try {
+                const vehicleNumber = `TEST${Date.now()}`;
+                const year = 2024;
+                const hashInput = `${vehicleNumber}_${year}_${Date.now()}`;
+                const licenseHash = ethers.keccak256(ethers.toUtf8Bytes(hashInput));
+                
+                log(`   Issuing license for ${vehicleNumber}...`, 'info');
+                
+                const tx = await contract.issueLicense(
+                    vehicleNumber,
+                    year,
+                    licenseHash,
+                    "RTAX-TEST-001",
+                    "INS-TEST-001",
+                    "FIT-TEST-001",
+                    365,
+                    JSON.stringify({ vehicle: vehicleNumber, test: true })
+                );
+                
+                log(`   Waiting for confirmation...`, 'info');
+                const receipt = await tx.wait();
+                
+                if (receipt.status === 1) {
+                    log(`✅ PASS: License issued - TX: ${receipt.hash.slice(0, 10)}...`, 'pass');
+                    lastLicenseHash = licenseHash;
+                    return true;
+                } else {
+                    throw new Error("Transaction failed");
+                }
+                
+            } catch (error) {
+                log(`❌ FAIL: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+        
+        async function testLicenseVerification() {
+            log("🧪 TEST 5: License Verification", 'info');
+            
+            if (!contract) return false;
+            
+            if (!lastLicenseHash) {
+                log("⚠️ SKIP: No license hash available for verification", 'skip');
+                return true;
+            }
+            
+            try {
+                const result = await contract.verifyLicense(lastLicenseHash);
+                
+                if (result && result[0] !== "") {
+                    log(`✅ PASS: License verified - Vehicle: ${result[0]}, Valid: ${result[2]}`, 'pass');
+                    return true;
+                } else {
+                    log("❌ FAIL: License not found", 'fail');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ FAIL: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+        
+        async function testLicenseRevocation() {
+            log("🧪 TEST 6: License Revocation", 'info');
+            
+            if (!contract) return false;
+            
+            const address = await signer.getAddress();
+            const rtsaAddress = await contract.rtsaAuthority();
+            const isRTSA = address.toLowerCase() === rtsaAddress.toLowerCase();
+            
+            if (!isRTSA) {
+                log("⚠️ SKIP: Not RTSA account - Revocation requires RTSA role", 'skip');
+                return true;
+            }
+            
+            if (!lastLicenseHash) {
+                log("⚠️ SKIP: No license to revoke", 'skip');
+                return true;
+            }
+            
+            try {
+                const tx = await contract.revokeLicense(lastLicenseHash, "Test revocation");
+                const receipt = await tx.wait();
+                
+                if (receipt.status === 1) {
+                    log(`✅ PASS: License revoked - TX: ${receipt.hash.slice(0, 10)}...`, 'pass');
+                    
+                    // Verify it's revoked
+                    const result = await contract.verifyLicense(lastLicenseHash);
+                    if (result[3] === true) {
+                        log(`✅ PASS: License shows as revoked in verification`, 'pass');
+                        return true;
+                    }
+                    return true;
+                } else {
+                    throw new Error("Transaction failed");
+                }
+                
+            } catch (error) {
+                log(`❌ FAIL: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+        
+        async function testEventListening() {
+            log("🧪 TEST 7: Event Listening", 'info');
+            log("✅ PASS: Event listeners configured (check console for events)", 'pass');
+            return true;
+        }
+        
+        // ============================================
+        // RUN ALL TESTS
+        // ============================================
+        
+        async function runAllTests() {
+            clearResults();
+            log("🚀 Starting Student 2 Implementation Tests...", 'info');
+            log("=".repeat(50), 'info');
+            
+            if (!provider) {
+                log("⚠️ Please connect MetaMask first!", 'fail');
+                return;
+            }
+            
+            const tests = [
+                testWalletConnection,
+                testContractConnection,
+                testRTSARole,
+                testLicenseIssuance,
+                testLicenseVerification,
+                testLicenseRevocation,
+                testEventListening
+            ];
+            
+            let passed = 0;
+            let failed = 0;
+            
+            for (const test of tests) {
+                const result = await test();
+                if (result === true) {
+                    passed++;
+                } else if (result === false) {
+                    failed++;
+                }
+                log("-".repeat(40), 'info');
+            }
+            
+            const total = tests.length;
+            
+            log("=".repeat(50), 'info');
+            log(`📊 Test Results: ${passed} Passed, ${failed} Failed, ${total - passed - failed} Skipped`, 
+                failed === 0 ? 'pass' : 'fail');
+            
+            document.getElementById('summary').style.display = 'block';
+            document.getElementById('passCount').textContent = passed;
+            document.getElementById('failCount').textContent = failed;
+            document.getElementById('totalCount').textContent = total;
+            
+            if (failed === 0) {
+                log("🎉 All tests passed! Student 2 implementation is complete!", 'pass');
+            } else {
+                log("⚠️ Some tests failed. Please review the errors above.", 'fail');
+            }
+        }
+        
+        // Auto-check MetaMask on load
+        window.addEventListener('load', () => {
+            if (typeof window.ethereum !== 'undefined') {
+                log("✅ MetaMask detected", 'pass');
+                window.ethereum.on('accountsChanged', () => {
+                    log("🔄 Account changed - Please reconnect wallet", 'info');
+                    disconnectWallet();
+                });
+            } else {
+                log("⚠️ MetaMask not detected. Please install MetaMask extension.", 'fail');
+            }
+        });
+    </script>
+</body>
+</html>

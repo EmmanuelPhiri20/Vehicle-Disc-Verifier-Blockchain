@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MetaMask Diagnostic</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        .section { background: #252526; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .info { color: #569cd6; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007acc; color: white; border: none; border-radius: 3px; }
+        pre { background: #1e1e1e; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 MetaMask Connection Diagnostic</h1>
+    
+    <div class="section">
+        <h3>1️⃣ Check MetaMask Status</h3>
+        <button onclick="checkMetaMask()">Check MetaMask</button>
+        <pre id="metamaskStatus"></pre>
+    </div>
+    
+    <div class="section">
+        <h3>2️⃣ Check Current Network</h3>
+        <button onclick="checkNetwork()">Check Network</button>
+        <pre id="networkStatus"></pre>
+    </div>
+    
+    <div class="section">
+        <h3>3️⃣ Add/Switch to Hardhat Network</h3>
+        <button onclick="addHardhatNetwork()">Add Hardhat Network</button>
+        <button onclick="switchToHardhat()">Switch to Hardhat</button>
+        <pre id="networkAction"></pre>
+    </div>
+    
+    <div class="section">
+        <h3>4️⃣ Test Connection</h3>
+        <button onclick="testConnection()">Test Connection</button>
+        <pre id="testResult"></pre>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
+    <script>
+        const HARDHAT_CHAIN_ID = "0x" + (31337).toString(16);
+        const HARDHAT_RPC = "http://127.0.0.1:8545";
+        
+        async function checkMetaMask() {
+            const output = document.getElementById('metamaskStatus');
+            output.textContent = "Checking...";
+            
+            if (typeof window.ethereum === 'undefined') {
+                output.textContent = "❌ MetaMask not installed!";
+                return;
+            }
+            
+            output.textContent = "✅ MetaMask is installed\n";
+            
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                output.textContent += `📝 Accounts: ${accounts.length > 0 ? accounts.join(', ') : 'None'}\n`;
+                
+                if (accounts.length === 0) {
+                    output.textContent += "⚠️ No accounts. Click 'Connect Wallet' button below.\n";
+                }
+            } catch (error) {
+                output.textContent += `❌ Error: ${error.message}`;
+            }
+        }
+        
+        async function checkNetwork() {
+            const output = document.getElementById('networkStatus');
+            output.textContent = "Checking network...";
+            
+            if (typeof window.ethereum === 'undefined') {
+                output.textContent = "❌ MetaMask not installed";
+                return;
+            }
+            
+            try {
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                const networkName = getNetworkName(chainId);
+                
+                output.textContent = `🌐 Current Network:\n`;
+                output.textContent += `   Chain ID: ${chainId} (${parseInt(chainId, 16)})\n`;
+                output.textContent += `   Network: ${networkName}\n`;
+                output.textContent += `\n`;
+                
+                if (chainId === HARDHAT_CHAIN_ID) {
+                    output.textContent += `✅ CORRECT! You are on Hardhat Localhost!\n`;
+                    output.className = "success";
+                } else {
+                    output.textContent += `❌ WRONG NETWORK! Expected Chain ID: ${HARDHAT_CHAIN_ID} (31337)\n`;
+                    output.textContent += `   Please click "Switch to Hardhat" button above.\n`;
+                }
+            } catch (error) {
+                output.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        async function addHardhatNetwork() {
+            const output = document.getElementById('networkAction');
+            output.textContent = "Adding Hardhat network...";
+            
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: HARDHAT_CHAIN_ID,
+                        chainName: 'Hardhat Localhost',
+                        rpcUrls: [HARDHAT_RPC],
+                        nativeCurrency: {
+                            name: 'ETH',
+                            symbol: 'ETH',
+                            decimals: 18
+                        },
+                        blockExplorerUrls: []
+                    }]
+                });
+                output.textContent = "✅ Hardhat Localhost network added successfully!\n";
+                output.textContent += "Now click 'Switch to Hardhat' to connect.";
+                output.className = "success";
+            } catch (error) {
+                output.textContent = `❌ Failed to add network: ${error.message}`;
+                output.className = "error";
+            }
+        }
+        
+        async function switchToHardhat() {
+            const output = document.getElementById('networkAction');
+            output.textContent = "Switching to Hardhat...";
+            
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: HARDHAT_CHAIN_ID }]
+                });
+                output.textContent = "✅ Switched to Hardhat Localhost!\n";
+                output.textContent += "Now click 'Test Connection' to verify.";
+                output.className = "success";
+            } catch (error) {
+                if (error.code === 4902) {
+                    output.textContent = "⚠️ Network not added yet. Click 'Add Hardhat Network' first.";
+                } else {
+                    output.textContent = `❌ Failed to switch: ${error.message}`;
+                }
+                output.className = "error";
+            }
+        }
+        
+        async function testConnection() {
+            const output = document.getElementById('testResult');
+            output.textContent = "Testing connection...\n";
+            
+            if (typeof window.ethereum === 'undefined') {
+                output.textContent += "❌ MetaMask not installed";
+                return;
+            }
+            
+            try {
+                // Check chain
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                output.textContent += `Chain ID: ${chainId}\n`;
+                
+                if (chainId !== HARDHAT_CHAIN_ID) {
+                    output.textContent += "❌ Wrong network! Please switch to Hardhat Localhost.\n";
+                    return;
+                }
+                
+                // Get accounts
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                output.textContent += `Account: ${accounts[0]}\n`;
+                
+                // Create provider and check balance
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const balance = await provider.getBalance(accounts[0]);
+                output.textContent += `Balance: ${ethers.formatEther(balance)} ETH\n`;
+                
+                // Try to connect to your contract
+                const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+                const abi = ["function rtsaAuthority() view returns (address)"];
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
+                
+                try {
+                    const rtsa = await contract.rtsaAuthority();
+                    output.textContent += `\n✅ Contract connected!\n`;
+                    output.textContent += `   RTSA Authority: ${rtsa}\n`;
+                    output.textContent += `   Is RTSA: ${accounts[0].toLowerCase() === rtsa.toLowerCase() ? 'YES' : 'NO'}\n`;
+                } catch (contractError) {
+                    output.textContent += `\n⚠️ Cannot connect to contract. Is it deployed?\n`;
+                    output.textContent += `   Make sure you ran: npx hardhat run scripts/deploy.ts --network localhost\n`;
+                }
+                
+                output.className = "success";
+                
+            } catch (error) {
+                output.textContent += `❌ Error: ${error.message}`;
+                output.className = "error";
+            }
+        }
+        
+        function getNetworkName(chainId) {
+            const networks = {
+                '0x1': 'Ethereum Mainnet',
+                '0x5': 'Goerli Testnet',
+                '0xaa36a7': 'Sepolia',
+                '0x7a69': 'Hardhat Localhost (31337)'
+            };
+            return networks[chainId] || `Unknown (${chainId})`;
+        }
+        
+        // Auto-run checks on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkMetaMask();
+                checkNetwork();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
