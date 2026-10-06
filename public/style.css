@@ -1,0 +1,298 @@
+/* Shared styles for both UIs */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header Styles */
+.header {
+    background: white;
+    border-radius: 15px;
+    padding: 20px 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.logo h1 {
+    color: #2c3e50;
+    font-size: 24px;
+}
+
+.logo p {
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.wallet-status {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.wallet-btn {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.wallet-btn.disconnect {
+    background: #e74c3c;
+}
+
+.wallet-address {
+    background: #f8f9fa;
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.role-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.role-badge.rtsa {
+    background: #e74c3c;
+}
+
+.role-badge.police {
+    background: #3498db;
+}
+
+/* Card Styles */
+.card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.card h2 {
+    margin-bottom: 20px;
+    color: #2c3e50;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 10px;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+/* Button Styles */
+button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+button:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+button.success {
+    background: #27ae60;
+}
+
+button.danger {
+    background: #e74c3c;
+}
+
+/* Result Styles */
+.result {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    display: none;
+    animation: fadeIn 0.5s;
+}
+
+.result.valid {
+    background: #d4edda;
+    border: 2px solid #28a745;
+    color: #155724;
+    display: block;
+}
+
+.result.invalid {
+    background: #f8d7da;
+    border: 2px solid #dc3545;
+    color: #721c24;
+    display: block;
+}
+
+.result.expired {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    color: #856404;
+    display: block;
+}
+
+.result.info {
+    background: #d1ecf1;
+    border: 2px solid #17a2b8;
+    color: #0c5460;
+    display: block;
+}
+
+/* Loading Animation */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Grid Layout */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+@media (max-width: 768px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+    .header {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+}
+
+/* Real-time Indicator */
+.realtime-badge {
+    background: #e74c3c;
+    color: white;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 10px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* QR Code Display */
+.qr-preview {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    margin-top: 15px;
+}
+
+.qr-code-text {
+    font-family: monospace;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-valid {
+    background: #28a745;
+    color: white;
+}
+
+.status-expired {
+    background: #ffc107;
+    color: #333;
+}
+
+.status-revoked {
+    background: #dc3545;
+    color: white;
+}

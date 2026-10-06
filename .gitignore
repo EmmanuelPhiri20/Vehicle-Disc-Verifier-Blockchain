@@ -18,3 +18,13 @@
 
 # Hardhat coverage reports
 /coverage
+
+# Local deployment records
+/deployments/
+
+# Environment files
+.env
+.env.*
+
+# TypeChain generated contract bindings
+/typechain-types/

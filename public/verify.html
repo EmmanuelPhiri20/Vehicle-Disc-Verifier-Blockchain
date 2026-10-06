@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police Verification - RTSA License System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .verification-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 550px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #2c3e50; font-size: 28px; }
+        .header p { color: #7f8c8d; margin-top: 5px; }
+        .police-badge {
+            background: #3498db;
+            color: white;
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #2c3e50; font-weight: bold; }
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: monospace;
+            text-align: center;
+        }
+        input:focus { outline: none; border-color: #3498db; }
+        button {
+            width: 100%;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover { background: #2980b9; transform: translateY(-2px); }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
+        
+        .loading-container {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text { font-size: 16px; color: #2c3e50; margin-bottom: 8px; }
+        .loading-subtext { font-size: 12px; color: #7f8c8d; }
+        
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result.valid { background: #d4edda; border: 2px solid #28a745; color: #155724; }
+        .result.invalid { background: #f8d7da; border: 2px solid #dc3545; color: #721c24; }
+        .result.expired { background: #fff3cd; border: 2px solid #ffc107; color: #856404; }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .hash-value {
+            font-family: monospace;
+            font-size: 11px;
+            word-break: break-all;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 5px;
+            max-width: 280px;
+            text-align: left;
+        }
+        .info-note {
+            background: #d1ecf1;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .pulse-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #e74c3c;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+            margin-right: 8px;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .test-hint {
+            margin-top: 15px;
+            font-size: 11px;
+            color: #7f8c8d;
+            text-align: center;
+            border-top: 1px solid #ecf0f1;
+            padding-top: 15px;
+        }
+        .test-hint span {
+            display: inline-block;
+            background: #ecf0f1;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin: 0 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-card">
+        <div class="header">
+            <h1>🚔 RTSA License Verification</h1>
+            <p>Police & Public Verification Portal</p>
+            <div class="police-badge">
+                <span class="pulse-dot"></span> Request to RTSA
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>📱 Enter QR Code</label>
+            <input type="text" id="qrInput" placeholder="Enter QR code" autocomplete="off">
+        </div>
+
+        <button id="verifyBtn" onclick="sendVerificationRequest()">🔍 Request Verification</button>
+
+        <div id="loadingState" style="display: none;">
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <div class="loading-text">📡 Request sent to RTSA Authority...</div>
+                <div class="loading-subtext">Please wait while RTSA officer reviews the license</div>
+                <div style="margin-top: 10px; font-size: 11px; color: #3498db;">⏳ Waiting for RTSA response</div>
+            </div>
+        </div>
+
+        <div id="resultArea" class="result" style="display: none;"></div>
+
+        <div class="info-note">
+            <span style="background:#e74c3c; color:white; font-size:10px; padding:2px 8px; border-radius:10px;">LIVE</span>
+            Request will be sent to RTSA dashboard for verification
+        </div>
+
+        <div class="test-hint">
+            💡 Test QR codes: <span>Zq123</span> <span>Zq456</span> <span>Zq789</span> | <span>EXP001</span> <span>EXP002</span> | Any other code
+        </div>
+    </div>
+
+    <script>
+        let currentRequestId = null;
+        let responseListener = null;
+        let isWaiting = false;
+
+        function generateRequestId() {
+            return 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('resultArea').style.display = 'none';
+            document.getElementById('verifyBtn').disabled = true;
+            document.getElementById('verifyBtn').innerHTML = '<span class="pulse-dot"></span> Request Sent...';
+            isWaiting = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('verifyBtn').disabled = false;
+            document.getElementById('verifyBtn').innerHTML = '🔍 Request Verification';
+            isWaiting = false;
+        }
+
+        function sendVerificationRequest() {
+            const qrCode = document.getElementById('qrInput').value.trim().toUpperCase();
+            if (!qrCode) {
+                alert('Please enter a QR code');
+                return;
+            }
+
+            showLoading();
+            currentRequestId = generateRequestId();
+
+            const request = {
+                qrCode: qrCode,
+                requestId: currentRequestId,
+                timestamp: new Date().toISOString()
+            };
+
+            localStorage.setItem('pendingVerificationRequest', JSON.stringify(request));
+            localStorage.setItem(`request_${currentRequestId}`, JSON.stringify(request));
+
+            if (responseListener) {
+                window.removeEventListener('storage', responseListener);
+            }
+
+            responseListener = (event) => {
+                if (event.key === `response_${currentRequestId}` && event.newValue) {
+                    const response = JSON.parse(event.newValue);
+                    handleResponse(response);
+                }
+                else if (event.key === 'verificationResponse' && event.newValue) {
+                    const response = JSON.parse(event.newValue);
+                    if (response.requestId === currentRequestId || response.status === 'REVOKED') {
+                        handleResponse(response);
+                    }
+                }
+            };
+            window.addEventListener('storage', responseListener);
+
+            setTimeout(() => {
+                if (isWaiting) {
+                    hideLoading();
+                    showResult('⏰ Request timeout. RTSA did not respond.', 'invalid');
+                }
+            }, 60000);
+        }
+
+        function handleResponse(response) {
+            hideLoading();
+
+            let resultClass = 'info';
+            let resultHtml = '';
+
+            switch(response.status) {
+                case 'VALID':
+                    resultClass = 'valid';
+                    resultHtml = `
+                        <div style="text-align:center;">
+                            <div style="font-size:48px;">✅</div>
+                            <h3>LICENSE VALID</h3>
+                            <p>${response.message}</p>
+                            <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1);">
+                                <div class="detail-row"><strong>Vehicle:</strong> ${response.details.vehicleNumber}</div>
+                                <div class="detail-row"><strong>Owner:</strong> ${response.details.ownerName}</div>
+                                <div class="detail-row"><strong>Year:</strong> ${response.details.year}</div>
+                                <div class="detail-row"><strong>Expires:</strong> ${response.details.expiryDate}</div>
+                                <div class="detail-row"><strong>Road Tax:</strong> ${response.details.roadTaxRef}</div>
+                                <div class="detail-row"><strong>Insurance:</strong> ${response.details.insuranceRef}</div>
+                                <div class="detail-row"><strong>Fitness:</strong> ${response.details.fitnessRef}</div>
+                                <div class="detail-row"><strong>🔑 Hash:</strong> <span class="hash-value">${response.details.hash || 'N/A'}</span></div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'EXPIRED':
+                    resultClass = 'expired';
+                    resultHtml = `
+                        <div style="text-align:center;">
+                            <div style="font-size:48px;">⚠️</div>
+                            <h3>LICENSE EXPIRED</h3>
+                            <p>${response.message}</p>
+                            <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1);">
+                                <div class="detail-row"><strong>Vehicle:</strong> ${response.details.vehicleNumber}</div>
+                                <div class="detail-row"><strong>Owner:</strong> ${response.details.ownerName}</div>
+                                <div class="detail-row"><strong>Year:</strong> ${response.details.year}</div>
+                                <div class="detail-row"><strong>Expired:</strong> ${response.details.expiryDate}</div>
+                                <div class="detail-row"><strong>Road Tax:</strong> ${response.details.roadTaxRef}</div>
+                                <div class="detail-row"><strong>Insurance:</strong> ${response.details.insuranceRef}</div>
+                                <div class="detail-row"><strong>Fitness:</strong> ${response.details.fitnessRef}</div>
+                                <div class="detail-row"><strong>🔑 Hash:</strong> <span class="hash-value">${response.details.hash || 'N/A'}</span></div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'REVOKED':
+                    resultClass = 'invalid';
+                    resultHtml = `
+                        <div style="text-align:center;">
+                            <div style="font-size:48px;">❌</div>
+                            <h3>LICENSE REVOKED</h3>
+                            <p>${response.message}</p>
+                            <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,0,0,0.1);">
+                                <div class="detail-row"><strong>QR Code:</strong> ${response.details.qrCode || 'N/A'}</div>
+                                <div class="detail-row"><strong>Vehicle:</strong> ${response.details.vehicleNumber || 'N/A'}</div>
+                                <div class="detail-row"><strong>Owner:</strong> ${response.details.ownerName || 'N/A'}</div>
+                                <div class="detail-row"><strong>Reason:</strong> ${response.details.reason || response.details.revocationReason || 'N/A'}</div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                default:
+                    resultClass = 'invalid';
+                    resultHtml = `
+                        <div style="text-align:center;">
+                            <div style="font-size:48px;">❌</div>
+                            <h3>LICENSE NOT FOUND</h3>
+                            <p>${response.message}</p>
+                        </div>
+                    `;
+            }
+
+            showResult(resultHtml, resultClass);
+        }
+
+        function showResult(html, type) {
+            const resultDiv = document.getElementById('resultArea');
+            resultDiv.innerHTML = html;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        document.getElementById('qrInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendVerificationRequest();
+        });
+    </script>
+</body>
+</html>

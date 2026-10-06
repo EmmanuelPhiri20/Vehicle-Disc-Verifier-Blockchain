@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTSA Authority - Vehicle License Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .logo h1 { color: #2c3e50; font-size: 24px; }
+        .logo p { color: #7f8c8d; font-size: 14px; }
+        .wallet-status { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .wallet-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .wallet-address {
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .role-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #2c3e50; font-weight: bold; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        input:focus { outline: none; border-color: #3498db; }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
+        button.success { background: #27ae60; }
+        button.danger { background: #e74c3c; }
+        button.warning { background: #f39c12; }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .button-group button {
+            flex: 1;
+            margin-top: 0;
+        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+        
+        .incoming-request {
+            background: #e8f4fd;
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { border-color: #3498db; }
+            50% { border-color: #e74c3c; }
+            100% { border-color: #3498db; }
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .result.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .result.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        .auto-fill-badge {
+            background: #27ae60;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hash-value {
+            font-family: monospace;
+            font-size: 11px;
+            word-break: break-all;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <h1>🇿🇲 RTSA Authority Dashboard</h1>
+                <p>Vehicle License Disc Management System <span style="background:#e74c3c; color:white; font-size:10px; padding:2px 8px; border-radius:10px;">LIVE</span></p>
+            </div>
+            <div class="wallet-status">
+                <div id="walletAddress" class="wallet-address">Not Connected</div>
+                <div id="walletBalance" class="wallet-address">- ETH</div>
+                <div id="roleBadge" class="role-badge">No Role</div>
+                <button id="connectBtn" class="wallet-btn" onclick="connectWallet()">Connect MetaMask</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📡 Incoming Police Verification Requests</h2>
+            <div id="requestsList" style="max-height: 200px; overflow-y: auto;">
+                <p style="color: #7f8c8d; text-align: center;">Waiting for police verification requests...</p>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h2>📋 Process Verification Request <span class="auto-fill-badge">AUTO-FILL</span></h2>
+                <div id="selectedRequest" style="display: none;">
+                    <div style="background: #e8f4fd; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong>📱 QR Code:</strong> <span id="displayQRCode"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Number</label>
+                        <input type="text" id="vehicleNumber" readonly style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Owner Name</label>
+                        <input type="text" id="ownerName" readonly style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Year</label>
+                        <input type="text" id="year" readonly style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Hash Value</label>
+                        <input type="text" id="hashValue" readonly style="background:#f8f9fa; font-family:monospace; font-size:11px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Road Tax Reference</label>
+                        <input type="text" id="roadTaxRef" readonly style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Insurance Reference</label>
+                        <input type="text" id="insuranceRef" readonly style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Fitness Test Reference</label>
+                        <input type="text" id="fitnessRef" readonly style="background:#f8f9fa;">
+                    </div>
+                    <div class="form-group">
+                        <label>Expiry Date</label>
+                        <input type="text" id="expiryDate" readonly style="background:#f8f9fa;">
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="issueLicenseBtn" class="success" onclick="issueLicenseFromRequest()">📝 Issue License</button>
+                        <button id="sendResponseBtn" class="success" onclick="sendResponseToPolice()">💬 Send Response</button>
+                        <button id="cancelRequestBtn" class="danger" onclick="rejectRequest()">❌ Cancel Request</button>
+                    </div>
+                </div>
+                <div id="noRequestSelected" style="text-align: center; padding: 40px; color: #7f8c8d;">
+                    Select a verification request from above
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🚫 Revoke / Mark as Invalid <span style="background:#f39c12; color:white; font-size:10px; padding:2px 8px; border-radius:10px;">OFF-CHAIN</span></h2>
+                <p style="color: #7f8c8d; margin-bottom: 15px;">For QR codes not found in database - mark as revoked and notify police</p>
+                <div class="form-group">
+                    <label>QR Code (Not in Database)</label>
+                    <input type="text" id="revokeQRCode" placeholder="Enter QR code to revoke (e.g., FAKE123)">
+                </div>
+                <div class="form-group">
+                    <label>Reason for Revocation</label>
+                    <input type="text" id="revokeReason" placeholder="e.g., Fake disc, Not in system, Unauthorized">
+                </div>
+                <button id="revokeBtn" class="warning" onclick="revokeUnknownLicense()">🚫 Mark as Revoked & Notify Police</button>
+                <div id="revokeResult" class="result"></div>
+                <p style="margin-top: 10px; font-size: 11px; color: #7f8c8d;">
+                    ⚠️ Note: Unknown QR codes don't exist on blockchain. This marks them as invalid in the verification system.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🧪 Test QR Codes for Demonstration</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div style="background:#d4edda; padding:10px; border-radius:8px;">
+                    <strong>✅ VALID (2026):</strong><br>Zq123, Zq456, Zq789
+                </div>
+                <div style="background:#fff3cd; padding:10px; border-radius:8px;">
+                    <strong>⚠️ EXPIRED (2024/2023):</strong><br>EXP001, EXP002, EXP003
+                </div>
+                <div style="background:#f8d7da; padding:10px; border-radius:8px;">
+                    <strong>❌ UNKNOWN:</strong><br>Any other code (use Revoke section)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
+    <script src="database.js"></script>
+    <script>
+        const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+        const CONTRACT_ABI = [
+            "function rtsaAuthority() view returns (address)",
+            "function issueLicense(string,uint256,bytes32,string,string,string,uint256,string)",
+            "function revokeLicense(bytes32,string)",
+            "function verifyLicense(bytes32) view returns (string,uint256,bool,bool,bool,uint256,uint256,string)"
+        ];
+        
+        let provider, signer, contract, isRTSA = false;
+        let currentRequest = null;
+        let pendingRequests = [];
+
+        async function connectWallet() {
+            const btn = document.getElementById('connectBtn');
+            btn.innerHTML = '<span class="loading"></span> Connecting...';
+            btn.disabled = true;
+            
+            if (typeof window.ethereum === 'undefined') {
+                alert("MetaMask not installed!");
+                btn.innerHTML = 'Connect MetaMask';
+                btn.disabled = false;
+                return;
+            }
+            
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                
+                const address = await signer.getAddress();
+                const rtsaAddress = await contract.rtsaAuthority();
+                isRTSA = address.toLowerCase() === rtsaAddress.toLowerCase();
+                const balance = await provider.getBalance(address);
+                
+                document.getElementById('walletAddress').innerHTML = `${address.slice(0,6)}...${address.slice(-4)}`;
+                document.getElementById('walletBalance').innerHTML = `${parseFloat(ethers.formatEther(balance)).toFixed(2)} ETH`;
+                document.getElementById('roleBadge').innerHTML = isRTSA ? '👑 RTSA Authority' : 'Unauthorized';
+                document.getElementById('roleBadge').style.background = isRTSA ? '#e74c3c' : '#95a5a6';
+                
+                btn.innerHTML = '✅ Connected';
+                btn.style.background = '#27ae60';
+                
+                if (isRTSA) {
+                    startListeningForRequests();
+                    showResult('revokeResult', '✅ Wallet connected as RTSA Authority!', 'success');
+                } else {
+                    showResult('revokeResult', '⚠️ Connected as regular user. RTSA privileges required.', 'error');
+                }
+            } catch (error) {
+                showResult('revokeResult', 'Connection failed: ' + error.message, 'error');
+                btn.innerHTML = 'Connect MetaMask';
+                btn.disabled = false;
+            }
+        }
+
+        function startListeningForRequests() {
+            setInterval(() => {
+                const storedRequest = localStorage.getItem('pendingVerificationRequest');
+                if (storedRequest) {
+                    const request = JSON.parse(storedRequest);
+                    if (!pendingRequests.find(r => r.requestId === request.requestId)) {
+                        addRequestToList(request);
+                    }
+                }
+            }, 500);
+            
+            window.addEventListener('storage', (event) => {
+                if (event.key === 'pendingVerificationRequest' && event.newValue) {
+                    const request = JSON.parse(event.newValue);
+                    if (!pendingRequests.find(r => r.requestId === request.requestId)) {
+                        addRequestToList(request);
+                    }
+                }
+            });
+        }
+
+        function addRequestToList(request) {
+            pendingRequests.push(request);
+            const requestsDiv = document.getElementById('requestsList');
+            if (requestsDiv.children.length === 1 && requestsDiv.children[0].textContent.includes('Waiting')) {
+                requestsDiv.innerHTML = '';
+            }
+            
+            const requestDiv = document.createElement('div');
+            requestDiv.className = 'incoming-request';
+            requestDiv.id = `request_${request.requestId}`;
+            requestDiv.innerHTML = `
+                <strong>🔔 New Verification Request</strong><br>
+                QR Code: <strong>${request.qrCode}</strong><br>
+                Time: ${new Date(request.timestamp).toLocaleTimeString()}<br>
+                <button onclick="selectRequest('${request.requestId}')" style="margin-top:10px; padding:5px 15px; font-size:12px;">📋 Process Request</button>
+            `;
+            requestsDiv.prepend(requestDiv);
+        }
+
+        function selectRequest(requestId) {
+            currentRequest = pendingRequests.find(r => r.requestId === requestId);
+            if (!currentRequest) return;
+            
+            const license = LicenseDatabase.getLicenseByQRCode(currentRequest.qrCode);
+            
+            document.getElementById('displayQRCode').innerHTML = currentRequest.qrCode;
+            
+            if (license.found) {
+                document.getElementById('vehicleNumber').value = license.vehicleNumber || 'N/A';
+                document.getElementById('ownerName').value = license.ownerName || 'N/A';
+                document.getElementById('year').value = license.year || 'N/A';
+                document.getElementById('hashValue').value = license.hash || 'N/A';
+                document.getElementById('roadTaxRef').value = license.roadTaxRef || 'N/A';
+                document.getElementById('insuranceRef').value = license.insuranceRef || 'N/A';
+                document.getElementById('fitnessRef').value = license.fitnessRef || 'N/A';
+                document.getElementById('expiryDate').value = license.expiryDate || 'N/A';
+                currentRequest.licenseData = license;
+                
+                const currentYear = new Date().getFullYear();
+                const isExpired = license.year < currentYear;
+                const isRevoked = license.status === "REVOKED";
+                
+                if (isExpired) {
+                    document.getElementById('issueLicenseBtn').disabled = true;
+                    document.getElementById('sendResponseBtn').disabled = false;
+                    showResult('revokeResult', '⚠️ This license is EXPIRED. You can only send response.', 'info');
+                } else if (isRevoked) {
+                    document.getElementById('issueLicenseBtn').disabled = true;
+                    document.getElementById('sendResponseBtn').disabled = false;
+                    showResult('revokeResult', '⚠️ This license is REVOKED. You can only send response.', 'info');
+                } else {
+                    document.getElementById('issueLicenseBtn').disabled = false;
+                    document.getElementById('sendResponseBtn').disabled = false;
+                }
+            } else {
+                document.getElementById('vehicleNumber').value = 'NOT FOUND IN DATABASE';
+                document.getElementById('ownerName').value = 'N/A';
+                document.getElementById('year').value = 'N/A';
+                document.getElementById('hashValue').value = 'N/A';
+                document.getElementById('roadTaxRef').value = 'N/A';
+                document.getElementById('insuranceRef').value = 'N/A';
+                document.getElementById('fitnessRef').value = 'N/A';
+                document.getElementById('expiryDate').value = 'N/A';
+                currentRequest.licenseData = null;
+                
+                document.getElementById('issueLicenseBtn').disabled = true;
+                document.getElementById('sendResponseBtn').disabled = false;
+            }
+            
+            document.getElementById('selectedRequest').style.display = 'block';
+            document.getElementById('noRequestSelected').style.display = 'none';
+        }
+
+        async function issueLicenseFromRequest() {
+            if (!currentRequest || !currentRequest.licenseData) {
+                showResult('revokeResult', '❌ No license data to issue', 'error');
+                return;
+            }
+            
+            if (!isRTSA) {
+                showResult('revokeResult', '❌ Only RTSA officers can issue licenses', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('issueLicenseBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> Signing...';
+            btn.disabled = true;
+            
+            try {
+                const license = currentRequest.licenseData;
+                const hashInput = `${license.vehicleNumber}_${license.year}_${Date.now()}`;
+                const licenseHash = ethers.keccak256(ethers.toUtf8Bytes(hashInput));
+                const metadata = JSON.stringify({ 
+                    qrCode: currentRequest.qrCode, 
+                    vehicleNumber: license.vehicleNumber,
+                    ownerName: license.ownerName 
+                });
+                
+                showResult('revokeResult', '⏳ Please check MetaMask and confirm the transaction...', 'info');
+                
+                const tx = await contract.issueLicense(
+                    license.vehicleNumber, license.year, licenseHash,
+                    license.roadTaxRef, license.insuranceRef, license.fitnessRef, 365, metadata
+                );
+                
+                btn.innerHTML = '<span class="loading"></span> Confirming...';
+                const receipt = await tx.wait();
+                
+                if (typeof LicenseDatabase.addLicense === 'function') {
+                    LicenseDatabase.addLicense(currentRequest.qrCode, {
+                        ...license,
+                        hash: licenseHash,
+                        status: "VALID"
+                    });
+                } else {
+                    LicenseDatabase.licenses[currentRequest.qrCode.toUpperCase()] = {
+                        qrCode: currentRequest.qrCode.toUpperCase(),
+                        hash: licenseHash,
+                        vehicleNumber: license.vehicleNumber,
+                        ownerName: license.ownerName,
+                        year: license.year,
+                        roadTaxRef: license.roadTaxRef,
+                        insuranceRef: license.insuranceRef,
+                        fitnessRef: license.fitnessRef,
+                        status: "VALID",
+                        issuedDate: new Date().toISOString().split('T')[0],
+                        expiryDate: new Date(new Date().setFullYear(license.year + 1)).toISOString().split('T')[0]
+                    };
+                }
+                
+                showResult('revokeResult', `
+                    ✅ LICENSE ISSUED ON BLOCKCHAIN!<br>
+                    <strong>QR Code:</strong> ${currentRequest.qrCode}<br>
+                    <strong>Vehicle:</strong> ${license.vehicleNumber}<br>
+                    <strong>Transaction:</strong> ${receipt.hash.slice(0, 20)}...
+                `, 'success');
+                
+                const response = {
+                    requestId: currentRequest.requestId,
+                    status: 'VALID',
+                    message: `✅ License VALID - Vehicle: ${license.vehicleNumber}, Owner: ${license.ownerName}`,
+                    details: { ...license, hash: licenseHash }
+                };
+                localStorage.setItem(`response_${currentRequest.requestId}`, JSON.stringify(response));
+                localStorage.setItem('verificationResponse', JSON.stringify(response));
+                
+                const requestElement = document.getElementById(`request_${currentRequest.requestId}`);
+                if (requestElement) requestElement.remove();
+                document.getElementById('selectedRequest').style.display = 'none';
+                document.getElementById('noRequestSelected').style.display = 'block';
+                currentRequest = null;
+                
+            } catch (error) {
+                if (error.code === 'ACTION_REJECTED') {
+                    showResult('revokeResult', '❌ Transaction rejected in MetaMask', 'error');
+                } else {
+                    showResult('revokeResult', `❌ Error: ${error.message}`, 'error');
+                }
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function sendResponseToPolice() {
+            if (!currentRequest) return;
+            
+            const license = currentRequest.licenseData;
+            let response;
+            
+            if (!license) {
+                response = {
+                    requestId: currentRequest.requestId,
+                    status: 'NOT_FOUND',
+                    message: '❌ License NOT FOUND - This QR code does not exist in the RTSA database',
+                    details: null
+                };
+            } else {
+                const currentYear = new Date().getFullYear();
+                const isExpired = license.year < currentYear;
+                const isRevoked = license.status === "REVOKED";
+                
+                if (isRevoked) {
+                    response = {
+                        requestId: currentRequest.requestId,
+                        status: 'REVOKED',
+                        message: `❌ License REVOKED - Vehicle: ${license.vehicleNumber}`,
+                        details: license
+                    };
+                } else if (isExpired) {
+                    response = {
+                        requestId: currentRequest.requestId,
+                        status: 'EXPIRED',
+                        message: `⚠️ License EXPIRED - Vehicle: ${license.vehicleNumber}, Owner: ${license.ownerName}`,
+                        details: license
+                    };
+                } else {
+                    response = {
+                        requestId: currentRequest.requestId,
+                        status: 'VALID',
+                        message: `✅ License VALID - Vehicle: ${license.vehicleNumber}, Owner: ${license.ownerName}`,
+                        details: license
+                    };
+                }
+            }
+            
+            localStorage.setItem(`response_${currentRequest.requestId}`, JSON.stringify(response));
+            localStorage.setItem('verificationResponse', JSON.stringify(response));
+            
+            const requestIndex = pendingRequests.findIndex(r => r.requestId === currentRequest.requestId);
+            if (requestIndex !== -1) pendingRequests.splice(requestIndex, 1);
+            
+            const requestElement = document.getElementById(`request_${currentRequest.requestId}`);
+            if (requestElement) requestElement.remove();
+            
+            document.getElementById('selectedRequest').style.display = 'none';
+            document.getElementById('noRequestSelected').style.display = 'block';
+            
+            showResult('revokeResult', `✅ Response sent to Police: ${response.status}`, 'success');
+            currentRequest = null;
+        }
+
+        function rejectRequest() {
+            if (!currentRequest) return;
+            
+            const response = {
+                requestId: currentRequest.requestId,
+                status: 'REJECTED',
+                message: '❌ Verification request rejected by RTSA Authority',
+                details: null
+            };
+            
+            localStorage.setItem(`response_${currentRequest.requestId}`, JSON.stringify(response));
+            localStorage.setItem('verificationResponse', JSON.stringify(response));
+            
+            const requestElement = document.getElementById(`request_${currentRequest.requestId}`);
+            if (requestElement) requestElement.remove();
+            
+            document.getElementById('selectedRequest').style.display = 'none';
+            document.getElementById('noRequestSelected').style.display = 'block';
+            currentRequest = null;
+            showResult('revokeResult', '❌ Request rejected', 'error');
+        }
+
+        async function revokeUnknownLicense() {
+            if (!isRTSA) {
+                showResult('revokeResult', '❌ Only RTSA officers can revoke licenses', 'error');
+                return;
+            }
+            
+            const qrCode = document.getElementById('revokeQRCode').value.trim().toUpperCase();
+            const reason = document.getElementById('revokeReason').value.trim() || 'Fake/Unauthorized license disc';
+            
+            if (!qrCode) {
+                showResult('revokeResult', '❌ Please enter a QR code to revoke', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('revokeBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> Processing...';
+            btn.disabled = true;
+            
+            try {
+                const existingLicense = LicenseDatabase.getLicenseByQRCode(qrCode);
+                let response;
+                
+                if (existingLicense.found) {
+                    if (LicenseDatabase.licenses[qrCode]) {
+                        LicenseDatabase.licenses[qrCode].status = "REVOKED";
+                    }
+                    
+                    response = {
+                        requestId: currentRequest ? currentRequest.requestId : 'revoke_' + Date.now(),
+                        status: 'REVOKED',
+                        message: `❌ License REVOKED - Vehicle: ${existingLicense.vehicleNumber}, Reason: ${reason}`,
+                        details: {
+                            ...existingLicense,
+                            status: 'REVOKED',
+                            revocationReason: reason
+                        }
+                    };
+                } else {
+                    response = {
+                        requestId: currentRequest ? currentRequest.requestId : 'revoke_' + Date.now(),
+                        status: 'REVOKED',
+                        message: `❌ License REVOKED - QR Code: ${qrCode} is not registered in the system. Reason: ${reason}`,
+                        details: {
+                            qrCode: qrCode,
+                            vehicleNumber: 'NOT REGISTERED',
+                            ownerName: 'UNKNOWN',
+                            year: 'N/A',
+                            reason: reason,
+                            status: 'REVOKED'
+                        }
+                    };
+                }
+                
+                localStorage.setItem(`response_${response.requestId}`, JSON.stringify(response));
+                localStorage.setItem('verificationResponse', JSON.stringify(response));
+                
+                showResult('revokeResult', `
+                    ✅ REVOCATION RESPONSE SENT TO POLICE!<br>
+                    <strong>QR Code:</strong> ${qrCode}<br>
+                    <strong>Reason:</strong> ${reason}<br>
+                    <strong>Status:</strong> ${response.status}
+                `, 'success');
+                
+                document.getElementById('revokeQRCode').value = '';
+                document.getElementById('revokeReason').value = '';
+                
+                if (currentRequest) {
+                    const requestElement = document.getElementById(`request_${currentRequest.requestId}`);
+                    if (requestElement) requestElement.remove();
+                    document.getElementById('selectedRequest').style.display = 'none';
+                    document.getElementById('noRequestSelected').style.display = 'block';
+                    currentRequest = null;
+                }
+                
+            } catch (error) {
+                showResult('revokeResult', `❌ Error: ${error.message}`, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+            setTimeout(() => {
+                if (element.style.display === 'block') {
+                    element.style.display = 'none';
+                }
+            }, 8000);
+        }
+
+        window.selectRequest = selectRequest;
+        window.issueLicenseFromRequest = issueLicenseFromRequest;
+        window.sendResponseToPolice = sendResponseToPolice;
+        window.rejectRequest = rejectRequest;
+        window.revokeUnknownLicense = revokeUnknownLicense;
+        window.connectWallet = connectWallet;
+    </script>
+</body>
+</html>
